@@ -174,9 +174,8 @@ def main():
         print("\nOptions:")
         print("1. Create a new dev site")
         print("2. Remove a dev site")
-        print("3. Initial Setup")
-        print("4. Version Info")
-        print("5. Exit")
+        print("3. Setup")
+        print("4. Exit")
 
         choice = input("Enter your choice: ")
 
@@ -194,7 +193,8 @@ def main():
                 print("\nInitial Setup:")
                 print("1. Initialize repository")
                 print("2. Setup Xdebug")
-                print("3. Back to main menu")
+                print("3. Version Info")
+                print("4. Back to main menu")
 
                 setup_choice = input("Enter your choice: ")
 
@@ -203,12 +203,12 @@ def main():
                 elif setup_choice == "2":
                     setup_xdebug()
                 elif setup_choice == "3":
+                    print(f"Version: {VERSION}")
+                elif choice == "4":
                     break
                 else:
                     print("Invalid choice. Please try again.")
         elif choice == "4":
-            print(f"Version: {VERSION}")
-        elif choice == "5":
             print("Exiting...")
             break
         else:
