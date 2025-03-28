@@ -5,6 +5,7 @@ import subprocess
 import re
 import requests
 import sys
+import time
 
 
 def run_command(command, cwd=None):
@@ -18,10 +19,11 @@ def run_command(command, cwd=None):
 
 
 def fetch_latest_script():
-    """Fetches the latest version of the script from a Gist URL."""
-    gist_url = "https://raw.githubusercontent.com/rcsresults7979/czhelper/refs/heads/main/czhelper"
+    """Fetches the latest version of the script from a GitHub URL."""
+    timestamp = int(time.time())
+    script_url = f"https://raw.githubusercontent.com/rcsresults7979/czhelper/refs/heads/main/czhelper?timestamp={timestamp}"
     try:
-        response = requests.get(gist_url)
+        response = requests.get(script_url)
         if response.status_code == 200:
             return response.text
         else:
