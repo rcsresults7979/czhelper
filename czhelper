@@ -1,0 +1,215 @@
+#!/usr/bin/env python3
+
+import os
+import subprocess
+import re
+import requests
+import sys
+
+
+def run_command(command, cwd=None):
+    """Runs a shell command in a given directory."""
+    try:
+        result = subprocess.run(command, shell=True, check=True, cwd=cwd)
+        return result.returncode == 0
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {e}")
+        return False
+
+
+def fetch_latest_script():
+    """Fetches the latest version of the script from a Gist URL."""
+    gist_url = "https://raw.githubusercontent.com/rcsresults7979/czhelper/refs/heads/main/czhelper"
+    try:
+        response = requests.get(gist_url)
+        if response.status_code == 200:
+            return response.text
+        else:
+            print(f"Failed to fetch update. HTTP Status: {response.status_code}")
+            return None
+    except Exception as e:
+        print(f"Error fetching script: {e}")
+        return None
+
+
+def auto_update():
+    """Checks for updates and replaces the script if a new version is found."""
+    latest_script = fetch_latest_script()
+    if latest_script:
+        script_path = os.path.realpath(__file__)
+        with open(script_path, "r") as f:
+            current_script = f.read()
+        if latest_script.strip() != current_script.strip():
+            print("Updating script to the latest version...")
+            with open(script_path, "w") as f:
+                f.write(latest_script)
+            print("Update successful! Restarting script...")
+            os.execv(sys.executable, [sys.executable] + sys.argv)
+        else:
+            print("Script is already up-to-date.")
+
+
+def init_repo():
+    repo_url = "git@github.com:rcsresults7979/RCS.git"
+    branch = "PHP8"
+    print("Cloning repository...")
+    if not run_command(f"git clone --bare -b {branch} {repo_url} ./.bare"):
+        return
+    if not run_command(f"echo 'gitdir: ./.bare' > .git"):
+        return
+    if not run_command(f"git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'"):
+        return
+    if not run_command(f"git fetch origin"):
+        return
+
+    print("Repository cloned successfully.")
+
+
+def setup_xdebug():
+    host = input("Enter Xdebug host (e.g., office.yourhome.com or 127.0.0.1): ").strip()
+    try:
+        port = int(input("Enter Xdebug port (e.g., 9003): ").strip())
+    except ValueError:
+        print("Error: Port must be a number.")
+        return
+
+    xdebug_config = f"""zend_extension=xdebug
+xdebug.mode=debug
+xdebug.client_host={host}
+xdebug.client_port={port}
+"""
+
+    try:
+        with open("xdebug.ini", "w") as f:
+            f.write(xdebug_config)
+        print(f"xdebug.ini file created successfully with host={host} and port={port}")
+    except Exception as e:
+        print(f"Error creating xdebug.ini file: {e}")
+
+
+def create_dev_site(port, description, branch):
+    if not (8000 <= port <= 8999):
+        print("Error: Port must be between 8000 and 8999.")
+        return
+
+    description = description.replace(" ", "-")
+    dev_folder = f"cz-{port}-{description}"
+
+    # Check if a folder with this port number already exists
+    existing_folders = [d for d in os.listdir(".") if re.match(f"cz-{port}-.*", d)]
+    if existing_folders:
+        print(f"Error: A development site with port {port} already exists: {existing_folders[0]}")
+        return
+
+    if len(dev_folder) > 32:
+        print("Error: Folder name exceeds 32 characters.")
+        return
+
+    print("Adding worktree...")
+    if not run_command(f"git fetch origin"):
+        return
+    if not run_command(f"git worktree add {dev_folder} {branch}"):
+        return
+
+    print(f"Switching to {dev_folder} folder...")
+    if not run_command("./cz build", cwd=dev_folder):
+        return
+    if not run_command("./cz db-load", cwd=dev_folder):
+        return
+    if not run_command("./cz up", cwd=dev_folder):
+        return
+
+    print(f"Development site {dev_folder} created successfully on branch {branch}.")
+
+
+def list_dev_sites():
+    """Lists all development sites matching the format cz-8XXX-name, sorted by name."""
+    dev_sites = [d for d in os.listdir(".") if re.match(r"cz-8\d{3}-.*", d)]
+    if not dev_sites:
+        print("No development sites found.")
+        return None
+
+    # Sort the development sites by name
+    dev_sites.sort()
+
+    # Create a dictionary to map selection numbers to site names
+    site_map = {}
+    print("Available development sites:")
+    for site in dev_sites:
+        # Extract the number after 'cz-8' (last 3 digits)
+        port_num = int(site.split('-')[1][1:])  # Gets XXX from cz-8XXX-name
+        site_map[port_num] = site
+        print(f"{port_num}. {site}")
+
+    while True:
+        try:
+            choice = int(input("Select a site to remove (enter number): "))
+            if choice in site_map:
+                return site_map[choice]
+            else:
+                print("Invalid selection. Please try again.")
+        except ValueError:
+            print("Invalid input. Please enter a number.")
+
+
+def remove_dev_site():
+    dev_folder = list_dev_sites()
+    if not dev_folder:
+        return
+
+    print(f"Switching to {dev_folder} folder...")
+    run_command("./cz down", cwd=dev_folder)  # Ignore failure
+    run_command("./cz db-drop", cwd=dev_folder)  # Ignore failure
+
+    print("Removing worktree")
+    if not run_command(f"git worktree remove {dev_folder}"):
+        return
+
+    print(f"Development site {dev_folder} removed successfully.")
+
+
+def main():
+    auto_update()  # Auto-update at the start
+    while True:
+        print("\nOptions:")
+        print("1. Create a new dev site")
+        print("2. Remove a dev site")
+        print("3. Initial Setup")
+        print("4. Exit")
+
+        choice = input("Enter your choice: ")
+
+        if choice == "1":
+            port = int(input("Enter port (8000-8999): "))
+            description = input("Enter short description: ").strip().replace(" ", "-")
+            branch = input(
+                "Enter branch name (optional - if not provided a new branch will be created with the dev folder name): ").strip()
+            create_dev_site(port, description, branch)
+        elif choice == "2":
+            remove_dev_site()
+        elif choice == "3":
+            while True:
+                print("\nInitial Setup:")
+                print("1. Initialize repository")
+                print("2. Setup Xdebug")
+                print("3. Back to main menu")
+
+                setup_choice = input("Enter your choice: ")
+
+                if setup_choice == "1":
+                    init_repo()
+                elif setup_choice == "2":
+                    setup_xdebug()
+                elif setup_choice == "3":
+                    break
+                else:
+                    print("Invalid choice. Please try again.")
+        elif choice == "4":
+            print("Exiting...")
+            break
+        else:
+            print("Invalid choice. Please try again.")
+
+
+if __name__ == "__main__":
+    main()
