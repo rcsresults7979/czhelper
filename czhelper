@@ -5,7 +5,8 @@ import subprocess
 import re
 import requests
 import sys
-import time
+
+VERSION = "202503281212"
 
 
 def run_command(command, cwd=None):
@@ -20,8 +21,7 @@ def run_command(command, cwd=None):
 
 def fetch_latest_script():
     """Fetches the latest version of the script from a GitHub URL."""
-    timestamp = int(time.time())
-    script_url = f"https://raw.githubusercontent.com/rcsresults7979/czhelper/refs/heads/main/czhelper?timestamp={timestamp}"
+    script_url = f"https://raw.githubusercontent.com/rcsresults7979/czhelper/refs/heads/main/czhelper"
     try:
         response = requests.get(script_url)
         if response.status_code == 200:
@@ -175,7 +175,8 @@ def main():
         print("1. Create a new dev site")
         print("2. Remove a dev site")
         print("3. Initial Setup")
-        print("4. Exit")
+        print("4. Version Info")
+        print("5. Exit")
 
         choice = input("Enter your choice: ")
 
@@ -206,6 +207,8 @@ def main():
                 else:
                     print("Invalid choice. Please try again.")
         elif choice == "4":
+            print(f"Version: {VERSION}")
+        elif choice == "5":
             print("Exiting...")
             break
         else:
