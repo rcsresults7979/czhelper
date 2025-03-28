@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import signal
 import subprocess
 import re
 import requests
@@ -168,7 +169,12 @@ def remove_dev_site():
     print(f"Development site {dev_folder} removed successfully.")
 
 
+def signal_handler(sig, frame):
+    sys.exit(0)
+
+
 def main():
+    signal.signal(signal.SIGINT, signal_handler)  # Handle CTRL+C
     auto_update()  # Auto-update at the start
     while True:
         print("\nOptions:")
@@ -204,7 +210,7 @@ def main():
                     setup_xdebug()
                 elif setup_choice == "3":
                     print(f"Version: {VERSION}")
-                elif choice == "4":
+                elif setup_choice == "4":
                     break
                 else:
                     print("Invalid choice. Please try again.")
