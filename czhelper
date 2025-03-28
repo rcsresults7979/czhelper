@@ -185,6 +185,7 @@ def main():
             branch = input(
                 "Enter branch name (optional - if not provided a new branch will be created with the dev folder name): ").strip()
             create_dev_site(port, description, branch)
+            break
         elif choice == "2":
             remove_dev_site()
         elif choice == "3":
