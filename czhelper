@@ -47,8 +47,6 @@ def auto_update():
                 f.write(latest_script)
             print("Update successful! Restarting script...")
             os.execv(sys.executable, [sys.executable] + sys.argv)
-        else:
-            print("Script is already up-to-date.")
 
 
 def init_repo():
