@@ -93,7 +93,7 @@ def create_dev_site(port, description, branch):
         print("Error: Port must be between 8000 and 8999.")
         return
 
-    description = description.replace(" ", "-")
+    description = description.replace(" ", "-").lower()
     dev_folder = f"cz-{port}-{description}"
 
     # Check if a folder with this port number already exists
