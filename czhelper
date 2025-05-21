@@ -7,7 +7,7 @@ import re
 import requests
 import sys
 
-VERSION = "202503281212"
+VERSION = "202505210953"
 
 
 def run_command(command, cwd=None):
@@ -75,12 +75,16 @@ def setup_xdebug():
         return
 
     xdebug_config = f"""zend_extension=xdebug
-xdebug.mode=debug
+xdebug.mode=debug,profile
+xdebug.start_with_request = trigger
+xdebug.output_dir=/tmp/xdebug
 xdebug.client_host={host}
 xdebug.client_port={port}
 """
 
     try:
+        os.mkdir('xdebug')
+        os.chmod('xdebug', 0o777)
         with open("xdebug.ini", "w") as f:
             f.write(xdebug_config)
         print(f"xdebug.ini file created successfully with host={host} and port={port}")
@@ -163,7 +167,7 @@ def remove_dev_site():
     run_command("./cz db-drop", cwd=dev_folder)  # Ignore failure
 
     print("Removing worktree")
-    if not run_command(f"git worktree remove {dev_folder}"):
+    if not run_command(f"git worktree remove --force {dev_folder}"):
         return
 
     print(f"Development site {dev_folder} removed successfully.")
