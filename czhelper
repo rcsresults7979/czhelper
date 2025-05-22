@@ -78,6 +78,7 @@ def setup_xdebug():
 xdebug.mode=debug,profile
 xdebug.start_with_request = trigger
 xdebug.output_dir=/tmp/xdebug
+xdebug.profiler_output_name=cachegrind.out.%r
 xdebug.client_host={host}
 xdebug.client_port={port}
 """
